@@ -1,16 +1,12 @@
-from flask import Flask, request, jsonify
-import requests
 import os
 import logging
-
-# 🔧 ตั้งค่าระดับ log ให้แสดง INFO บน Render
-logging.basicConfig(level=logging.INFO)
+import requests
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
 
-# 🔐 ใส่ Access Token จริงของคุณ
-ACCESS_TOKEN = 'EAAThQXZCTvaQBO2LLgPLmqKJ825upcuSDoZCNEZBaLvlr8y8bQYGuZA7invE8zvZCKZBQ2EZBut4mwC2v0IjNZCXZCbzoxq0T2vWGtCJxngLGclGZBefXTKWXPH1oDs56RPWxZBJ6UJKDV0rANBHvi3vGL5vjJsQZAZCKeFbRtXkqHPpOZCZBmdTZCVRFKBOvOYKqwqX1chL7cHQanrL5qbH6JWvD02ZCfE5nATphRfutpsTJkE8KfGcZD'
-
+ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN") or "EAAThQXZCTvaQBOZB7gMhEkLSnQS9bco3NrdrdzBKMPjpUvZAghv5cdSlqLfjutInhhAoiXWcWsFrJB1qgu8PgPZAYBCZC56fl9imabdYsJcgoXjosNG4WZAxfHa4zZCmcZC6pZC8gKW2ODccWct0omqMXENZAGrNomreh1jk8YW98VQm1XVkaKZAGPiI0loZBbn300vlZAg1ZCfiGDPabcgLPaiyklSJiv1A9RTzLnIgZDZD"
 
 @app.route('/ads', methods=['GET'])
 def get_ads():
@@ -46,28 +42,22 @@ def get_ads():
         image_url = 'NO IMAGE'
 
         try:
-            # 1. ดึง creative ID
             creative_url = f"https://graph.facebook.com/v22.0/{ad_id}?fields=creative&access_token={ACCESS_TOKEN}"
             creative_resp = requests.get(creative_url).json()
             creative_id = creative_resp.get('creative', {}).get('id', '')
 
             if creative_id:
-                # 2. ดึง object_story_spec และ object_story_id
                 detail_url = f"https://graph.facebook.com/v22.0/{creative_id}?fields=object_story_spec,object_story_id&access_token={ACCESS_TOKEN}"
                 detail_resp = requests.get(detail_url).json()
                 spec = detail_resp.get('object_story_spec', {})
 
-                # 3. กรณีมี image ใน link_data
                 if 'link_data' in spec:
                     image_url = spec['link_data'].get('image_url', image_url)
 
-                # 4. ถ้าเป็น dark post ให้ดึงภาพจาก object_story_id
                 story_id = detail_resp.get('object_story_id')
                 if story_id:
                     post_url = f"https://graph.facebook.com/v22.0/{story_id}?fields=message,attachments&access_token={ACCESS_TOKEN}"
                     post_resp = requests.get(post_url).json()
-
-                    # 🐞 Log JSON สำหรับวิเคราะห์
                     app.logger.info(f"🔍 Post response for {story_id}:\n{post_resp}")
 
                     attachments = post_resp.get('attachments', {}).get('data', [])
@@ -87,7 +77,6 @@ def get_ads():
         })
 
     return jsonify(results)
-
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
