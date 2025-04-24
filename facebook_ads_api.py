@@ -1,9 +1,11 @@
 from flask import Flask, request, jsonify
 import requests
+import os
 
 app = Flask(__name__)
 
-ACCESS_TOKEN = 'EAAThQXZCTvaQBO6rrNzQAx4pQrKEJY...'  # ใส่ token จริงที่นี่
+# ✅ ใส่ Access Token ที่ได้จาก Facebook Graph API Explorer
+ACCESS_TOKEN = 'EAAThQXZCTvaQBO6rrNzQAx4pQrKEJY...'  # <-- เปลี่ยนตรงนี้
 
 @app.route('/ads', methods=['GET'])
 def get_ads():
@@ -40,5 +42,16 @@ def get_ads():
             if 'link_data' in spec:
                 image_url = spec['link_data'].get('image_url', '')
 
-        results
-ห
+        results.append({
+            'ad_id': ad_id,
+            'ad_name': ad_name,
+            'spend': spend,
+            'image_url': image_url
+        })
+
+    return jsonify(results)
+
+# ✅ สำหรับ Render.com ต้องใช้ host='0.0.0.0' และ port จาก ENV
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
