@@ -71,9 +71,10 @@ def get_ads_insights():
     if not all([access_token, ad_account_id, date_start, date_end]):
         return jsonify({'error': 'Missing parameters'}), 400
 
+    # ❌ Removed: ad_creative_id from fields
     insights_url = (
         f"https://graph.facebook.com/v22.0/{ad_account_id}/insights"
-        f"?fields=ad_id,ad_name,impressions,clicks,spend,ad_creative_id"
+        f"?fields=ad_id,ad_name,impressions,clicks,spend"
         f"&level=ad&time_range[since]={date_start}&time_range[until]={date_end}"
         f"&limit=100&access_token={access_token}"
     )
@@ -87,27 +88,35 @@ def get_ads_insights():
         ad_id = ad.get("ad_id")
         ad_name = ad.get("ad_name")
         spend = ad.get("spend")
-        creative_id = ad.get("ad_creative_id", '')
         image_url = "NO IMAGE"
 
-        if creative_id:
-            creative_url = f"https://graph.facebook.com/v22.0/{creative_id}?fields=object_story_spec,object_story_id&access_token={access_token}"
+        try:
+            # ✅ Get creative ID from ad metadata
+            creative_url = f"https://graph.facebook.com/v22.0/{ad_id}?fields=creative&access_token={access_token}"
             creative_resp = requests.get(creative_url).json()
+            creative_id = creative_resp.get("creative", {}).get("id", '')
 
-            link_data = creative_resp.get("object_story_spec", {}).get("link_data", {})
-            if link_data:
-                image_url = link_data.get("image_url", image_url)
+            if creative_id:
+                creative_detail_url = f"https://graph.facebook.com/v22.0/{creative_id}?fields=object_story_spec,object_story_id&access_token={access_token}"
+                creative_detail_resp = requests.get(creative_detail_url).json()
 
-            story_id = creative_resp.get("object_story_id")
-            if story_id:
-                story_url = f"https://graph.facebook.com/v22.0/{story_id}?fields=attachments&access_token={access_token}"
-                story_resp = requests.get(story_url).json()
-                attachments = story_resp.get("attachments", {}).get("data", [])
-                if attachments:
-                    image_url = (
-                        attachments[0].get("media", {}).get("image", {}).get("src")
-                        or attachments[0].get("thumbnail_url", image_url)
-                    )
+                link_data = creative_detail_resp.get("object_story_spec", {}).get("link_data", {})
+                if link_data:
+                    image_url = link_data.get("image_url", image_url)
+
+                story_id = creative_detail_resp.get("object_story_id")
+                if story_id:
+                    story_url = f"https://graph.facebook.com/v22.0/{story_id}?fields=attachments&access_token={access_token}"
+                    story_resp = requests.get(story_url).json()
+                    attachments = story_resp.get("attachments", {}).get("data", [])
+                    if attachments:
+                        image_url = (
+                            attachments[0].get("media", {}).get("image", {}).get("src")
+                            or attachments[0].get("thumbnail_url", image_url)
+                        )
+
+        except Exception as e:
+            print(f"Error fetching creative info for ad {ad_id}: {e}")
 
         results.append({
             "ad_id": ad_id,
