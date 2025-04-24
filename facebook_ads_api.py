@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 
-ACCESS_TOKEN = 'EAAThQXZCTvaQBO...REPLACE_ME...'  # ใส่ token จริง
+ACCESS_TOKEN = 'EAAThQXZCTvaQBO7AnmzYR7ZAhlPFJVrM6tJSCWzZBgr4dZAyjza8extSKWiY8hVgQ5qyJoYr39hyVTDpUgv4RaQnRJ9VrggNA5adNs0P1DA733fiMfy0yCw9UpRJZBs8FdEFgqynj2TMqRcBeu83ZCygZCbbovDRV9WZCqiddRKr6dyqv4zUC3ZCebQZBG0Fr5iquQ2NSO75gPQjQx1Akgi6iD3zeZCMH9gZB16wYZAYUpOMWpDcZD'  # ใส่ token จริง
 
 @app.route('/ads', methods=['GET'])
 def get_ads():
