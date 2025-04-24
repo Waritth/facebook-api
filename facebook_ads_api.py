@@ -1,79 +1,63 @@
-import os
-import logging
-import requests
 from flask import Flask, request, jsonify
+import requests
+import os
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.INFO)
 
-ACCESS_TOKEN = os.getenv("PAGE_ACCESS_TOKEN") or "EAAThQXZCTvaQBOZB7gMhEkLSnQS9bco3NrdrdzBKMPjpUvZAghv5cdSlqLfjutInhhAoiXWcWsFrJB1qgu8PgPZAYBCZC56fl9imabdYsJcgoXjosNG4WZAxfHa4zZCmcZC6pZC8gKW2ODccWct0omqMXENZAGrNomreh1jk8YW98VQm1XVkaKZAGPiI0loZBbn300vlZAg1ZCfiGDPabcgLPaiyklSJiv1A9RTzLnIgZDZD"
-
-@app.route('/ads', methods=['GET'])
-def get_ads():
-    account_id = request.args.get('account_id')
+@app.route('/ads/insights')
+def get_ads_insights():
+    access_token = request.args.get('access_token')
+    ad_account_id = request.args.get('ad_account_id')
     date_start = request.args.get('date_start')
     date_end = request.args.get('date_end')
 
-    if not all([account_id, date_start, date_end]):
-        return jsonify({"error": "Missing required query parameters"}), 400
+    if not all([access_token, ad_account_id, date_start, date_end]):
+        return jsonify({'error': 'Missing parameters'}), 400
 
     insights_url = (
-        f"https://graph.facebook.com/v22.0/{account_id}/insights"
-        f"?fields=campaign_name,adset_name,ad_name,ad_id,impressions,clicks,spend"
+        f"https://graph.facebook.com/v22.0/{ad_account_id}/insights"
+        f"?fields=ad_id,ad_name,impressions,clicks,spend,ad_creative_id"
         f"&level=ad&time_range[since]={date_start}&time_range[until]={date_end}"
-        f"&limit=100&access_token={ACCESS_TOKEN}"
+        f"&limit=100&access_token={access_token}"
     )
 
-    response = requests.get(insights_url)
-    data = response.json()
-
-    if 'error' in data:
-        return jsonify({"error": data['error']}), 400
-
-    if not data.get('data'):
-        return jsonify({"message": "No ad data found for the given date range."}), 200
+    insights_resp = requests.get(insights_url).json()
+    if 'error' in insights_resp:
+        return jsonify(insights_resp), 400
 
     results = []
 
-    for ad in data['data']:
-        ad_id = ad.get('ad_id')
-        ad_name = ad.get('ad_name')
-        spend = ad.get('spend')
-        image_url = 'NO IMAGE'
+    for ad in insights_resp.get("data", []):
+        ad_id = ad.get("ad_id")
+        ad_name = ad.get("ad_name")
+        spend = ad.get("spend")
+        creative_id = ad.get("ad_creative_id", '')
+        image_url = "NO IMAGE"
 
-        try:
-            creative_url = f"https://graph.facebook.com/v22.0/{ad_id}?fields=creative&access_token={ACCESS_TOKEN}"
+        if creative_id:
+            creative_url = f"https://graph.facebook.com/v22.0/{creative_id}?fields=object_story_spec,object_story_id&access_token={access_token}"
             creative_resp = requests.get(creative_url).json()
-            creative_id = creative_resp.get('creative', {}).get('id', '')
 
-            if creative_id:
-                detail_url = f"https://graph.facebook.com/v22.0/{creative_id}?fields=object_story_spec,object_story_id&access_token={ACCESS_TOKEN}"
-                detail_resp = requests.get(detail_url).json()
-                spec = detail_resp.get('object_story_spec', {})
+            link_data = creative_resp.get("object_story_spec", {}).get("link_data", {})
+            if link_data:
+                image_url = link_data.get("image_url", image_url)
 
-                if 'link_data' in spec:
-                    image_url = spec['link_data'].get('image_url', image_url)
-
-                story_id = detail_resp.get('object_story_id')
-                if story_id:
-                    post_url = f"https://graph.facebook.com/v22.0/{story_id}?fields=message,attachments&access_token={ACCESS_TOKEN}"
-                    post_resp = requests.get(post_url).json()
-                    app.logger.info(f"🔍 Post response for {story_id}:\n{post_resp}")
-
-                    attachments = post_resp.get('attachments', {}).get('data', [])
-                    if attachments:
-                        media = attachments[0].get('media', {})
-                        image_data = media.get('image', {})
-                        image_url = image_data.get('src') or attachments[0].get('thumbnail_url', image_url)
-
-        except Exception as e:
-            app.logger.error(f"❌ Error processing ad {ad_id}: {e}")
+            story_id = creative_resp.get("object_story_id")
+            if story_id:
+                story_url = f"https://graph.facebook.com/v22.0/{story_id}?fields=attachments&access_token={access_token}"
+                story_resp = requests.get(story_url).json()
+                attachments = story_resp.get("attachments", {}).get("data", [])
+                if attachments:
+                    image_url = (
+                        attachments[0].get("media", {}).get("image", {}).get("src")
+                        or attachments[0].get("thumbnail_url", image_url)
+                    )
 
         results.append({
-            'ad_id': ad_id,
-            'ad_name': ad_name,
-            'spend': spend,
-            'image_url': image_url or 'NO IMAGE'
+            "ad_id": ad_id,
+            "ad_name": ad_name,
+            "spend": spend,
+            "image_url": image_url
         })
 
     return jsonify(results)
