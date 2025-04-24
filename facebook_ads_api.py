@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
 # 🔐 ใส่ Access Token จริงของคุณ
-ACCESS_TOKEN = 'EAAThQXZCTvaQBOxVAn8hZBvpXSxpTgC8AGODZA0rviVP8jSINsPERP6L8R0p0SDsCEWWZBhAJ918bOBs8FUBGkatH2Wt76EvBZAlpI8wNt0guwFoczpQUFCbNDDDlTGAYfkZBYmdPTbcjbizrpg5ToDZAABrEzTrBsD5FtB7wmq5G4TKixISJflbng4CKEu73j1vwweslfZBZBVVcwCUz77chuOwj1KBV1gYLqhwcQHPevu4ZD'
+ACCESS_TOKEN = 'EAAThQXZCTvaQBO2LLgPLmqKJ825upcuSDoZCNEZBaLvlr8y8bQYGuZA7invE8zvZCKZBQ2EZBut4mwC2v0IjNZCXZCbzoxq0T2vWGtCJxngLGclGZBefXTKWXPH1oDs56RPWxZBJ6UJKDV0rANBHvi3vGL5vjJsQZAZCKeFbRtXkqHPpOZCZBmdTZCVRFKBOvOYKqwqX1chL7cHQanrL5qbH6JWvD02ZCfE5nATphRfutpsTJkE8KfGcZD'
 
 
 @app.route('/ads', methods=['GET'])
