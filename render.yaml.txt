@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: facebook-ads-api
+    env: python
+    buildCommand: ""
+    startCommand: "python facebook_ads_api.py"
+    plan: free
