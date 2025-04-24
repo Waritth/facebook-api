@@ -4,8 +4,7 @@ import os
 
 app = Flask(__name__)
 
-# 🔐 ใส่ Access Token ที่ได้จาก Graph API Explorer หรือ OAuth
-ACCESS_TOKEN = 'EAAThQXZCTvaQBO7AnmzYR7ZAhlPFJVrM6tJSCWzZBgr4dZAyjza8extSKWiY8hVgQ5qyJoYr39hyVTDpUgv4RaQnRJ9VrggNA5adNs0P1DA733fiMfy0yCw9UpRJZBs8FdEFgqynj2TMqRcBeu83ZCygZCbbovDRV9WZCqiddRKr6dyqv4zUC3ZCebQZBG0Fr5iquQ2NSO75gPQjQx1Akgi6iD3zeZCMH9gZB16wYZAYUpOMWpDcZD'  # <-- ใส่ token จริงของคุณ
+ACCESS_TOKEN = 'EAAThQXZCTvaQBO7AnmzYR7ZAhlPFJVrM6tJSCWzZBgr4dZAyjza8extSKWiY8hVgQ5qyJoYr39hyVTDpUgv4RaQnRJ9VrggNA5adNs0P1DA733fiMfy0yCw9UpRJZBs8FdEFgqynj2TMqRcBeu83ZCygZCbbovDRV9WZCqiddRKr6dyqv4zUC3ZCebQZBG0Fr5iquQ2NSO75gPQjQx1Akgi6iD3zeZCMH9gZB16wYZAYUpOMWpDcZD'  # <-- ใส่ access token ของคุณ
 
 @app.route('/ads', methods=['GET'])
 def get_ads():
@@ -38,30 +37,43 @@ def get_ads():
         ad_id = ad.get('ad_id')
         ad_name = ad.get('ad_name')
         spend = ad.get('spend')
-        image_url = ''
+        image_url = 'NO IMAGE'
 
-        # 🔍 ดึง Creative ID
+        # Step 1: ดึง creative id
         creative_url = f"https://graph.facebook.com/v22.0/{ad_id}?fields=creative&access_token={ACCESS_TOKEN}"
         creative_resp = requests.get(creative_url).json()
         creative_id = creative_resp.get('creative', {}).get('id', '')
 
         if creative_id:
-            detail_url = f"https://graph.facebook.com/v22.0/{creative_id}?fields=object_story_spec&access_token={ACCESS_TOKEN}"
+            # Step 2: ดึง object_story_id + object_story_spec
+            detail_url = f"https://graph.facebook.com/v22.0/{creative_id}?fields=object_story_spec,object_story_id&access_token={ACCESS_TOKEN}"
             detail_resp = requests.get(detail_url).json()
             spec = detail_resp.get('object_story_spec', {})
+
+            # ✅ กรณี 1: ถ้ามี link_data
             if 'link_data' in spec:
-                image_url = spec['link_data'].get('image_url', '')
+                image_url = spec['link_data'].get('image_url', image_url)
+
+            # ✅ กรณี 2: เป็น dark post → ไปดูจาก object_story_id
+            story_id = detail_resp.get('object_story_id')
+            if story_id:
+                post_url = f"https://graph.facebook.com/v22.0/{story_id}?fields=message,attachments&access_token={ACCESS_TOKEN}"
+                post_resp = requests.get(post_url).json()
+                attachments = post_resp.get('attachments', {}).get('data', [])
+                if attachments:
+                    media = attachments[0].get('media', {})
+                    image_data = media.get('image', {})
+                    image_url = image_data.get('src') or attachments[0].get('thumbnail_url', image_url)
 
         results.append({
             'ad_id': ad_id,
             'ad_name': ad_name,
             'spend': spend,
-            'image_url': image_url or "NO IMAGE"
+            'image_url': image_url or 'NO IMAGE'
         })
 
     return jsonify(results)
 
-# ✅ ตั้งค่าให้ Render ใช้ PORT ที่กำหนด
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
