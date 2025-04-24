@@ -3,7 +3,7 @@ import requests
 
 app = Flask(__name__)
 
-ACCESS_TOKEN = 'EAAThQXZCTvaQBO6rrNzQAx4pQrKEJY1894YbGBu7rjdWUOtrkNs2GVwC063OuzZBbKtd57ZAkAkadFoxaqQ0GmKZAKGdScN7IHhJm8iiCrt72sjySaZC1JgUvtcRlGJRYYchLZCB7hirV9cg6uMMMSYimsHjhSTKpTSAxVh2KfSzSKOzGhnDZCkoE2DzgwQycmbMZAZCl9ibi2sQaXCelwdIqzWpwxvBLkunOCBjk2mZCucUsZD'  # คัดลอกมาจาก Graph API Explorer
+ACCESS_TOKEN = 'EAAThQXZCTvaQBO6rrNzQAx4pQrKEJY...'  # ใส่ token จริงที่นี่
 
 @app.route('/ads', methods=['GET'])
 def get_ads():
@@ -20,7 +20,6 @@ def get_ads():
 
     response = requests.get(insights_url)
     data = response.json()
-
     results = []
 
     for ad in data.get('data', []):
@@ -41,13 +40,5 @@ def get_ads():
             if 'link_data' in spec:
                 image_url = spec['link_data'].get('image_url', '')
 
-        results.append({
-            'ad_name': ad_name,
-            'spend': spend,
-            'image_url': image_url
-        })
-
-    return jsonify(results)
-
-if __name__ == '__main__':
-    app.run(debug=True)
+        results
+ห
